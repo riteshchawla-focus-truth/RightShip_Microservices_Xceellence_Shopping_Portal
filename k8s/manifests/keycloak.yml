@@ -1,0 +1,131 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak-realm
+  namespace: ecom
+data:
+  realm-ecom.json: |
+    {
+      "realm": "ecom",
+      "enabled": true,
+      "clients": [
+        {
+          "clientId": "ecom-gateway",
+          "enabled": true,
+          "publicClient": true,
+          "directAccessGrantsEnabled": true,
+          "redirectUris": [
+            "http://localhost:8080/*"
+          ],
+          "webOrigins": [
+            "*"
+          ]
+        }
+      ],
+      "roles": {
+        "realm": [
+          {
+            "name": "USER"
+          },
+          {
+            "name": "ADMIN"
+          }
+        ]
+      },
+      "users": [
+        {
+          "username": "admin",
+          "enabled": true,
+          "email": "admin@example.com",
+          "firstName": "Admin",
+          "lastName": "User",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "admin",
+              "temporary": false
+            }
+          ],
+          "realmRoles": [
+            "ADMIN",
+            "USER"
+          ]
+        },
+        {
+          "username": "user",
+          "enabled": true,
+          "email": "user@example.com",
+          "firstName": "Demo",
+          "lastName": "User",
+          "credentials": [
+            {
+              "type": "password",
+              "value": "user",
+              "temporary": false
+            }
+          ],
+          "realmRoles": [
+            "USER"
+          ]
+        }
+      ]
+    }
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  namespace: ecom
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:25.0.1
+          args: ["start-dev","--import-realm"]
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: kcadmin
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: kcadmin
+            - name: KC_DB
+              value: mysql
+            - name: KC_DB_URL
+              value: jdbc:mysql://mysql:3306/keycloak?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+            - name: KC_DB_USERNAME
+              value: ecom
+            - name: KC_DB_PASSWORD
+              value: ecom
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+            - name: KC_HTTP_ENABLED
+              value: "true"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: realm
+              mountPath: /opt/keycloak/data/import
+      volumes:
+        - name: realm
+          configMap:
+            name: keycloak-realm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: ecom
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - port: 8080
+      targetPort: 8080

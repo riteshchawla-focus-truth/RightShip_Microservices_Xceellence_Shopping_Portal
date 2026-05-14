@@ -1,0 +1,38 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: cart-service
+  datasource:
+    url: jdbc:mysql://mysql:3306/ecom_cart?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ecom
+    password: ecom
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:8080/realms/ecom}
+
+management:
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_ENDPOINT:http://zipkin:9411/api/v2/spans}
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-server:8761/eureka/
+
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      productService:
+        baseConfig: default
+
